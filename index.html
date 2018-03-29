@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="Tool per la raccolta delle presenze.">
+        <!--link rel="icon" href="../../../../favicon.ico"-->
+
+        <title>Presence</title>
+
+        <!-- Bootstrap core CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" crossorigin="anonymous">
+
+        <!-- Custom styles for this template -->
+        <link href="assets/css/cover.css" rel="stylesheet">        
+    </head>
+
+    <body class="text-center" ng-app="presence" ng-controller="main">
+
+        <div class="cover-container d-flex h-100 p-3 mx-auto flex-column" >
+
+            <!-- HEADER -->
+            <header class="masthead">
+                <div class="inner">
+
+                    <h3 class="masthead-brand">Presence</h3>
+
+                    <nav class="nav nav-masthead justify-content-center">
+                        <a class="nav-link {{(view=='QRread'||view==null)?'active':''}}" href="#" ng-click="showHome()">Home</a>
+                        <a class="nav-link {{view=='list'?'active':''}}" href="#" ng-click="showListView()">Studenti</a>
+                        <a class="nav-link {{view=='settings'?'active':''}}" href="#" ng-click="showSettings()">Impostazioni</a>
+                    </nav>
+                </div>
+            </header>
+
+            <!-- MAIN -->
+            <main role="main" class="inner cover {{(view==null || view=='QRread')?'mt-auto':''}}" ng-switch on="view" style="overflow-y:scroll">
+
+                <!-- First View  -->
+                <div ng-switch-default class="content">
+                    <h1 class="cover-heading">Presence.</h1>
+                    <p class="lead">Premi inizia per avviare la scansione QR. <br>
+                        <code> sezione = {{settings.section}}, labid = {{settings.labid}}</code></p>
+                    <p class="lead">
+                        <a href="#" class="btn btn-lg btn-secondary" ng-click="readQR()">Inizia</a>
+                    </p>
+                </div>
+
+                <!--QR Scan View  -->
+                <div ng-switch-when="QRread"  class="content">
+
+                    <!-- Recognized student notification -->
+                    <div ng-if="studentRecognized">
+                        <img width="140px" src="assets/icons/thumbsUp.png">
+                        <h2 style="color:#00c95f;margin-top:30px;">{{curStudent.name}}</h2>
+                        <p>La tua presenza è stata registrata.</p>
+                    </div>
+
+                    <!-- Not recognized student notification -->
+                    <div ng-if="studentNotRecognized">
+                        <img width="140px" src="assets/icons/thumbsDown.png">
+                        <h2 style="color:#ff2600;margin-top:30px;">Errore</h2>
+                        <p>Studente non riconosciuto.</p>
+                        <a href="#" class="btn btn-md btn-secondary" ng-click="resetQRCapture()">Riprova</a>
+                    </div>
+
+                    <!-- Unknown error notification-->
+                    <div ng-if="recognitionError">
+                        <img width="140px" src="assets/icons/thumbsDown.png">
+                        <h2 style="color:#ff2600;margin-top:30px;">Errore</h2>
+                        <p>Non è stato possibile riconoscere lo studente.</p>
+                    </div>
+
+                    <!-- WebCam / QRReader View -->
+                    <div id="qrCapture">
+                        <p>Inquadra il QR per registrare la presenza</p>
+                        <video style="margin-top:10px; width:500px;" id="preview"></video>
+                    </div>
+
+
+                </div>
+
+                <!-- Student lists View-->
+                <div ng-switch-when="list"  class="content">
+
+                    <!-- Options -->
+                    <div>
+                        <button type="button" ng-click="showAll()" class="btn btn-secondary {{listView=='all'?'active':''}}">All</button>
+                        <button type="button" ng-click="showAttending()" class="btn btn-secondary {{listView=='attending'?'active':''}}">Attending</button>
+                        <button type="button" ng-click="showMissing()" class="btn btn-secondary {{listView=='missing'?'active':''}}">Missing</button>
+                    </div>
+
+                    <br>
+                    <span style="color:silver">   {sezione = {{settings.section}}, labid = {{settings.labid}}}</span>
+
+
+                    <!-- Table -->
+                    <table class="table" style="margin-top: 50px" ng-if="tableEntries.length > 0">
+                        <tr>
+                            <th>ID</th>
+                            <th>Matricola</th>
+                            <th>Nome</th>
+                        </tr>
+                        <tr ng-repeat="student in tableEntries">
+                            <td style="padding: 0.35rem;">{{student.codice_persona}}</td>
+                            <td style="padding: 0.35rem;">{{student.matricola}}</td>
+                            <td style="padding: 0.35rem;">{{student.nome}}</td>
+                        </tr>
+                    </table>
+                    <div ng-if="tableEntries.length == 0" style="margin-top:30px">
+                        Niente da mostrare.
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div ng-switch-when="settings"  class="content">
+
+                    <h2>Settings</h2>
+                    <div class="input-group mb-3" style="margin-top:30px">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="text-shadow: none; width:90px;" id="sezione">Sezione</span>
+                        </div>
+                        <input type="text" class="form-control" placeholder="SanPietro" aria-label="Sezione" 
+                               ng-change="persistSettings()" ng-model="settings.section">
+                    </div>
+                    <div class="input-group mb-3">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="text-shadow: none; width:90px;" id="labid">Lab ID</span>
+                        </div>
+                        <input type="text" class="form-control" placeholder="1" aria-label="LabID" 
+                               ng-change="persistSettings()" ng-model="settings.labid">
+                    </div>
+
+                </div>
+
+            </main> 
+
+            <!-- FOOTER -->
+            <footer class="mastfoot mt-auto">
+                <div class="inner">
+                    <p>Find Presence on <a href="https://github.com/n1zzo/presence">GitHub</a></p>
+                </div>
+            </footer>
+        </div>
+
+        <!-- #### JS #### -->
+
+        <!-- Bootstrap core JavaScript -->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+        <!-- QRReader Libray -->
+        <script type="text/javascript" src="libs/instascan.min.js"></script>
+
+        <!-- Angular -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.5/angular.min.js"></script>
+
+        <!-- Controller -->
+        <script type="text/javascript" src="controller.js"></script>
+    </body>
+</html>
+
